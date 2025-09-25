@@ -1,0 +1,71 @@
+name: Manual Local Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'local'
+        type: choice
+        options:
+        - local
+        - staging
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+
+jobs:
+  deploy-to-local:
+    runs-on: self-hosted
+    steps:
+    - name: Checkout specific branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch }}
+
+    - name: Build images locally
+      run: |
+        echo "Building images from branch: ${{ github.event.inputs.branch }}"
+        docker build -t teamsphere-backend:${{ github.event.inputs.branch }} ./teamsphere-backend
+        docker build -t teamsphere-frontend:${{ github.event.inputs.branch }} ./teamsphere-frontend
+
+    - name: Stop existing deployment
+      run: |
+        docker-compose down || true
+        docker container prune -f
+
+    - name: Create branch-specific compose file
+      run: |
+        cp docker-compose.yml docker-compose.local.yml
+        # Update image tags to use branch-specific images
+        sed -i '/build:/c\    image: teamsphere-backend:${{ github.event.inputs.branch }}' docker-compose.local.yml
+
+    - name: Deploy with branch images
+      run: |
+        docker-compose -f docker-compose.local.yml up -d
+
+    - name: Wait and test deployment
+      run: |
+        echo "Waiting for services to start..."
+        sleep 45
+        
+        echo "Testing backend health..."
+        curl -f http://localhost:5001/api/projects/health
+        
+        echo "Testing frontend..."
+        curl -f http://localhost
+        
+        echo "✅ Deployment successful!"
+        echo "🌐 Frontend: http://localhost"
+        echo "🔗 Backend: http://localhost:5001"
+
+    - name: Show deployment status
+      run: |
+        echo "📊 Container Status:"
+        docker-compose -f docker-compose.local.yml ps
+        
+        echo "📅 Deployed: $(date)"
+        echo "🌿 Branch: ${{ github.event.inputs.branch }}"
+        echo "🏠 Environment: ${{ github.event.inputs.environment }}"

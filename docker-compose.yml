@@ -1,0 +1,179 @@
+# GitHub Actions Automatic Local Deployment Setup
+
+## Environment Variables Explanation
+
+The workflow uses these environment variables:
+```yaml
+env:
+  REGISTRY: docker.io
+  BACKEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/teamsphere-backend
+  FRONTEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/teamsphere-frontend
+```
+
+### What they do:
+- **REGISTRY**: Docker registry (Docker Hub)
+- **BACKEND_IMAGE**: Your backend image name on Docker Hub
+- **FRONTEND_IMAGE**: Your frontend image name on Docker Hub
+- **secrets.DOCKER_USERNAME**: Your Docker Hub username (stored securely)
+
+## Complete Setup Steps
+
+### 1. Create GitHub Repository
+```bash
+cd C:\Users\SupravaSwain\TeamSphereApp
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/yourusername/teamsphere.git
+git push -u origin main
+```
+
+### 2. Setup Docker Hub Account
+1. Create account at hub.docker.com
+2. Create repositories:
+   - `yourusername/teamsphere-backend`
+   - `yourusername/teamsphere-frontend`
+
+### 3. Configure GitHub Secrets
+Go to: Repository → Settings → Secrets and variables → Actions
+
+Add these secrets:
+```
+DOCKER_USERNAME = your_docker_hub_username
+DOCKER_PASSWORD = your_docker_hub_password_or_token
+```
+
+### 4. Setup Self-Hosted Runner
+On your local machine:
+1. Go to: Repository → Settings → Actions → Runners
+2. Click "New self-hosted runner"
+3. Follow setup instructions for Windows
+4. Start the runner service
+
+### 5. Workflow Triggers
+
+#### Automatic Deployment
+```yaml
+on:
+  push:
+    branches: [ main, develop ]  # Deploys when you push to these branches
+  pull_request:
+    branches: [ main ]           # Tests PRs against main
+```
+
+#### What happens when you push:
+1. **Build Backend** → Creates Docker image → Pushes to Docker Hub
+2. **Build Frontend** → Creates Docker image → Pushes to Docker Hub  
+3. **Deploy Locally** → Pulls images → Runs on your machine
+
+### 6. Usage Examples
+
+#### Push to Deploy
+```bash
+# Make changes to your code
+git add .
+git commit -m "Update feature"
+git push origin main
+# → Automatically triggers deployment to your local machine
+```
+
+#### Check Deployment Status
+- Go to GitHub → Actions tab
+- Watch real-time deployment progress
+- View logs if something fails
+
+### 7. Local Testing Commands
+
+After deployment completes:
+```bash
+# Check if containers are running
+docker ps
+
+# Test the application
+curl http://localhost:5001/api/projects/health
+# Should return: {"status":"OK","message":"Projects API is running",...}
+
+# Open browser
+start http://localhost
+```
+
+### 8. Troubleshooting
+
+#### Runner Issues
+```bash
+# Check if runner is connected
+# Go to GitHub → Settings → Actions → Runners
+# Should show "Idle" status when ready
+```
+
+#### Build Failures
+```bash
+# Check GitHub Actions logs
+# Common issues:
+# - Docker Hub login fails → Check secrets
+# - Build fails → Check Dockerfile syntax
+# - Deploy fails → Check runner is online
+```
+
+#### Local Access Issues
+```bash
+# Check Docker containers
+docker-compose ps
+
+# Check logs
+docker-compose logs backend
+docker-compose logs frontend
+
+# Restart if needed
+docker-compose restart
+```
+
+## File Structure After Setup
+```
+TeamSphereApp/
+├── .github/
+│   └── workflows/
+│       ├── build-and-deploy.yml    # Main workflow
+│       └── local-deploy.yml        # Manual deploy
+├── teamsphere-backend/
+├── teamsphere-frontend/
+├── docker-compose.yml
+└── .env
+```
+
+## Benefits
+- ✅ **Push to deploy** - Automatic deployment on code push
+- ✅ **Docker Hub** - Images stored and versioned
+- ✅ **Health checks** - Verifies deployment success
+- ✅ **Local testing** - Runs on your development machine
+- ✅ **Branch support** - Deploy different branches
+- ✅ **Rollback** - Easy to revert to previous versions
+
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./teamsphere-backend
+      dockerfile: Dockerfile
+    # image: ${DOCKER_USERNAME}/teamsphere-backend:${BACKEND_TAG:-latest}
+    container_name: teamsphere-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      MONGO_URI: mongodb://admin:password123@mongodb:27017/teamsphere?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-supersecretkey123}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      COGNITO_POOL_ID: ${COGNITO_POOL_ID:-your_cognito_pool_id}
+
+  frontend:
+    build:
+      context: ./teamsphere-frontend
+      dockerfile: Dockerfile
+    # image: ${DOCKER_USERNAME}/teamsphere-frontend:${FRONTEND_TAG:-latest}
+    container_name: teamsphere-frontend
+    restart: unless-stopped
