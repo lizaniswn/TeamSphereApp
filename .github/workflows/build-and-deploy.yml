@@ -18,7 +18,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Debug secrets (DO NOT LOG ACTUAL VALUES)
+    - name: Debug secrets
       run: |
         echo "Docker username exists: ${{ secrets.DOCKER_USERNAME != '' }}"
         echo "Docker password exists: ${{ secrets.DOCKER_PASSWORD != '' }}"
@@ -41,8 +41,6 @@ jobs:
         tags: |
           ${{ env.BACKEND_IMAGE }}:latest
           ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -50,91 +48,93 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Debug secrets (DO NOT LOG ACTUAL VALUES) 
+    - name: Debug secrets
       run: |
         echo "Docker username exists: ${{ secrets.DOCKER_USERNAME != '' }}"
         echo "Docker password exists: ${{ secrets.DOCKER_PASSWORD != '' }}"
+
+    - name: Check package files
+      working-directory: ./teamsphere-frontend
+      run: |
+        echo "Contents of teamsphere-frontend directory:"
+        ls -la
+        echo "Checking for package.json:"
+        cat package.json | head -10
+        echo "Checking for package-lock.json:"
+        if [ -f package-lock.json ]; then echo "package-lock.json exists"; else echo "package-lock.json missing"; fi
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        # Remove cache temporarily until package-lock.json exists
+        # Remove cache temporarily to avoid path issues
 
     - name: Install dependencies
-      working-directory: ./teamsphere-frontendjson if missing
-      run: npm ci --legacy-peer-deps
+      working-directory: ./teamsphere-frontend
+      run: npm install --legacy-peer-deps
 
-    - name: Build application        if [ ! -f package-lock.json ]; then
-      working-directory: ./teamsphere-frontendjson not found, creating it..."
-      run: npm run buildgacy-peer-deps
+    - name: Build application
+      working-directory: ./teamsphere-frontend
+      run: npm run build
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-ntend
-    - name: Log in to Docker Hub      run: npm ci --legacy-peer-deps
+
+    - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}ng-directory: ./teamsphere-frontend
+        username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push frontend    - name: Set up Docker Buildx
-      uses: docker/build-push-action@v5ion@v3
+    - name: Build and push frontend
+      uses: docker/build-push-action@v5
       with:
-        context: ./teamsphere-frontend Log in to Docker Hub
+        context: ./teamsphere-frontend
         file: ./teamsphere-frontend/Dockerfile
         push: true
-        tags: |${{ secrets.DOCKER_USERNAME }}
-          ${{ env.FRONTEND_IMAGE }}:latestd: ${{ secrets.DOCKER_PASSWORD }}
+        tags: |
+          ${{ env.FRONTEND_IMAGE }}:latest
           ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=maxh-action@v5
 
-  deploy-local:        context: ./teamsphere-frontend
-    needs: [build-backend, build-frontend]/teamsphere-frontend/Dockerfile
+  deploy-local:
+    needs: [build-backend, build-frontend]
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main'
-    steps:est
-    - name: Checkout code${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-      uses: actions/checkout@v4gha
-=max
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Create deployment directory
       run: |
-        mkdir -p ~/teamsphere-deploymentbuild-backend, build-frontend]
+        mkdir -p ~/teamsphere-deployment
         cp docker-compose.yml ~/teamsphere-deployment/
         cp .env ~/teamsphere-deployment/ 2>/dev/null || true
 
-    - name: Update docker-compose for production images    - name: Checkout code
+    - name: Update docker-compose for production images
       working-directory: ~/teamsphere-deployment
       run: |
-        sed -i 's|build:|# build:|g' docker-compose.ymlCreate deployment directory
+        sed -i 's|build:|# build:|g' docker-compose.yml
         sed -i 's|context: ./teamsphere-backend|# context: ./teamsphere-backend|g' docker-compose.yml
         sed -i 's|context: ./teamsphere-frontend|# context: ./teamsphere-frontend|g' docker-compose.yml
         sed -i '/dockerfile: Dockerfile/c\    image: ${{ env.BACKEND_IMAGE }}:latest' docker-compose.yml
 
     - name: Pull latest images
-      run: |ose for production images
-        docker pull ${{ env.BACKEND_IMAGE }}:latestg-directory: ~/teamsphere-deployment
+      run: |
+        docker pull ${{ env.BACKEND_IMAGE }}:latest
         docker pull ${{ env.FRONTEND_IMAGE }}:latest
-yml
-    - name: Deploy application        sed -i 's|context: ./teamsphere-backend|# context: ./teamsphere-backend|g' docker-compose.yml
-      working-directory: ~/teamsphere-deploymenteamsphere-frontend|# context: ./teamsphere-frontend|g' docker-compose.yml
-      run: |age: ${{ env.BACKEND_IMAGE }}:latest' docker-compose.yml
+
+    - name: Deploy application
+      working-directory: ~/teamsphere-deployment
+      run: |
         docker-compose down || true
         docker-compose up -d
 
-    - name: Wait for services        docker pull ${{ env.BACKEND_IMAGE }}:latest
-      run: sleep 30RONTEND_IMAGE }}:latest
-
-    - name: Health check    - name: Deploy application
-      run: | ~/teamsphere-deployment
-        curl -f http://localhost:5001/api/projects/health || exit 1
-        curl -f http://localhost || exit 1
-        echo "✅ Deployment successful!"
+    - name: Wait for services
       run: sleep 30
 
     - name: Health check
       run: |
         curl -f http://localhost:5001/api/projects/health || exit 1
         curl -f http://localhost || exit 1
+        echo "✅ Deployment successful!"
         echo "✅ Deployment successful!"
