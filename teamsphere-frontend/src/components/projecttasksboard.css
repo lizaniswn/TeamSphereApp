@@ -1,0 +1,76 @@
+/* ProjectTasksBoard Styles - matches ProjectBoard */
+.project-tasks-board-container {
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(44,62,80,0.10);
+  padding: 32px 36px;
+  margin: 32px auto;
+  max-width: 700px;
+  min-height: 100px;
+  max-height: 180px;
+}
+
+.project-tasks-board-title {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #23272f;
+  text-align: center;
+}
+
+.project-tasks-board-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 #e0e7ff;
+}
+
+.project-tasks-board-item {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+  min-width: 260px;
+  max-width: 320px;
+  flex: 0 0 auto;
+  padding: 18px 22px;
+  transition: box-shadow 0.2s;
+  border: 1px solid #e0e7ff;
+  margin-bottom: 0;
+  display: inline-block;
+}
+.project-tasks-board-item:hover {
+  box-shadow: 0 4px 16px rgba(44,62,80,0.18);
+}
+
+.project-tasks-board-header {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #6366f1;
+}
+.project-tasks-board-content {
+  margin-top: 8px;
+}
+.project-tasks-board-tasks {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.project-tasks-board-task {
+  background: #e0e7ff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  color: #23272f;
+}
+.project-tasks-board-none {
+  color: #bfc8e6;
+  font-style: italic;
+  font-size: 0.7rem;
+}
