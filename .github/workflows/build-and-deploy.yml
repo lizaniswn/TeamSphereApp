@@ -55,12 +55,12 @@ jobs:
 
     - name: Debug repository structure
       run: |
+        echo "Current working directory:"
+        pwd
         echo "Repository root contents:"
         ls -la
-        echo "Looking for frontend directory:"
-        find . -name "teamsphere-frontend" -type d
-        echo "Contents of teamsphere-frontend if it exists:"
-        ls -la teamsphere-frontend/ || echo "teamsphere-frontend directory not found"
+        echo "Looking for package.json files:"
+        find . -name "package.json" -type f
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
@@ -68,15 +68,31 @@ jobs:
         node-version: '18'
 
     - name: Install dependencies
-      working-directory: ./teamsphere-frontend
       run: |
-        pwd
-        ls -la
-        npm install --legacy-peer-deps
+        if [ -d "teamsphere-frontend" ]; then
+          cd teamsphere-frontend
+          echo "Found teamsphere-frontend directory"
+          ls -la
+          npm install --legacy-peer-deps
+        else
+          echo "teamsphere-frontend directory not found, checking current directory for package.json"
+          ls -la
+          if [ -f "package.json" ]; then
+            npm install --legacy-peer_deps
+          else
+            echo "No package.json found in current directory either"
+            exit 1
+          fi
+        fi
 
     - name: Build application
-      working-directory: ./teamsphere-frontend
-      run: npm run build
+      run: |
+        if [ -d "teamsphere-frontend" ]; then
+          cd teamsphere-frontend
+          npm run build
+        else
+          npm run build
+        fi
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
