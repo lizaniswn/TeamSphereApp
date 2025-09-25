@@ -53,25 +53,26 @@ jobs:
         echo "Docker username exists: ${{ secrets.DOCKER_USERNAME != '' }}"
         echo "Docker password exists: ${{ secrets.DOCKER_PASSWORD != '' }}"
 
-    - name: Check package files
-      working-directory: ./teamsphere-frontend
+    - name: Debug repository structure
       run: |
-        echo "Contents of teamsphere-frontend directory:"
+        echo "Repository root contents:"
         ls -la
-        echo "Checking for package.json:"
-        cat package.json | head -10
-        echo "Checking for package-lock.json:"
-        if [ -f package-lock.json ]; then echo "package-lock.json exists"; else echo "package-lock.json missing"; fi
+        echo "Looking for frontend directory:"
+        find . -name "teamsphere-frontend" -type d
+        echo "Contents of teamsphere-frontend if it exists:"
+        ls -la teamsphere-frontend/ || echo "teamsphere-frontend directory not found"
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        # Remove cache temporarily to avoid path issues
 
     - name: Install dependencies
       working-directory: ./teamsphere-frontend
-      run: npm install --legacy-peer-deps
+      run: |
+        pwd
+        ls -la
+        npm install --legacy-peer-deps
 
     - name: Build application
       working-directory: ./teamsphere-frontend
@@ -136,5 +137,4 @@ jobs:
       run: |
         curl -f http://localhost:5001/api/projects/health || exit 1
         curl -f http://localhost || exit 1
-        echo "✅ Deployment successful!"
         echo "✅ Deployment successful!"
